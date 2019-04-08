@@ -1,7 +1,7 @@
 #!/bin/bash
 
-HOME=/home/$(whoami)
-USERNAME=$(whoami)
+USERNAME=$1
+HOME=/home/$USERNAME
 
 RPMFUSION_FREE_RPM="http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
 
@@ -77,6 +77,12 @@ install_tarball() {
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root" 1>&2
    exit 1
+fi
+
+# Make sure you get the username argument
+if [ -z "$1" ]; then
+    echo "USAGE: $0 <YOUR_LOCAL_USERNAME>"
+    exit 1
 fi
 
 # Make sure user's home dir exists where we think it does
