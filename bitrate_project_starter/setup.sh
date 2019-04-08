@@ -1,31 +1,29 @@
 #!/bin/bash
 
-ANDREW_USERNAME=$1
-
-HOME=/home/project3
-USERNAME=project3
+HOME=/home/$(whoami)
+USERNAME=$(whoami)
 
 RPMFUSION_FREE_RPM="http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
 
 PACKAGES=(gcc-c++ git curl vim tmux kernel-modules-extra tar python-matplotlib kmod-VirtualBox VirtualBox-guest)
 
-STARTER_REPO="https://github.com/letitz/bitrate-project-starter.git"
-STARTER_REPO_DIR="bitrate-project-starter"
+STARTER_REPO="https://github.com/computer-networks/project-3-starter.git"
+STARTER_REPO_DIR="project-3-starter.git"
 
-APACHE_DOWNLOAD="http://mirrors.sonic.net/apache//httpd/httpd-2.2.29.tar.gz"
+APACHE_DOWNLOAD="https://archive.apache.org/dist/httpd/httpd-2.2.29.tar.gz"
 APACHE_TARBALL="httpd-2.2.29.tar.gz"
 APACHE_SRC_DIR="httpd-2.2.29"
 
-CLICK_DOWNLOAD="http://www.read.cs.ucla.edu/click/click-2.0.1.tar.gz"
+CLICK_DOWNLOAD="https://github.com/kohler/click/archive/v2.0.1.tar.gz"
 CLICK_TARBALL="click-2.0.1.tar.gz"
 CLICK_SRC_DIR="click-2.0.1"
 
-AFS_DIR="/afs/andrew.cmu.edu/usr/trigoudy/15441-p3"
-
-WWW_TARBALL="www.tar.gz"
+WWW_DOWNLOAD="https://cmu.box.com/shared/static/ha836ch0yv8qhksg9p4c7jbk00nf962v.gz"
+WWW_TARBALL="ha836ch0yv8qhksg9p4c7jbk00nf962v.gz"
 WWW_SRC_DIR="www"
 
-F4F_TARBALL="adobe_f4f_apache_module_4_5_1_linux_x64.tar.gz"
+F4F_DOWNLOAD="https://cmu.box.com/shared/static/ejmqauqmenqe6ll8terkcqfwajpo3v4j.gz"
+F4F_TARBALL="ejmqauqmenqe6ll8terkcqfwajpo3v4j.gz"
 F4F_SRC_DIR="adobe_f4f_apache_module_4_5_1_linux_x64"
 
 F4F_CONF="LoadModule f4fhttp_module modules/mod_f4fhttp.so\n
@@ -58,13 +56,7 @@ download_tarball() {
     fi
 }
 
-scp_tarball() {
-    cd $HOME
-    if [ ! -f $1 ]; then
-        echo "Scping $1..."
-        scp "$ANDREW_USERNAME@unix.andrew.cmu.edu:$AFS_DIR/$1" ./
-    fi
-}
+
 
 install_tarball() {
     download_tarball $1 $2
@@ -85,11 +77,6 @@ install_tarball() {
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root" 1>&2
    exit 1
-fi
-
-if [ -z "$1" ]; then
-    echo "USAGE: $0 <YOUR_ANDREW_USERNAME>"
-    exit 1
 fi
 
 # Make sure user's home dir exists where we think it does
@@ -135,7 +122,7 @@ echo
 
 # Install Adobe f4f origin module for apache
 echo "Installing Adobe f4f origin module for apache..."
-scp_tarball $F4F_TARBALL
+wget $F4F_DOWNLOAD
 extract_tarball $F4F_TARBALL $F4F_SRC_DIR
 cp ./$F4F_SRC_DIR/* /$APACHE_MODULES_DIR
 if ! grep -q "f4f" $APACHE_CONF_DIR/httpd.conf
@@ -146,7 +133,7 @@ echo
 
 # Copy www files to /var/www
 echo "Installing www files..."
-scp_tarball $WWW_TARBALL
+wget $WWW_DOWNLOAD
 extract_tarball $WWW_TARBALL $WWW_SRC_DIR
 rm -rf /var/www
 mv $WWW_SRC_DIR /var/www
