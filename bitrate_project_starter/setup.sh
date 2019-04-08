@@ -19,11 +19,11 @@ CLICK_TARBALL="click-2.0.1.tar.gz"
 CLICK_SRC_DIR="click-2.0.1"
 
 WWW_DOWNLOAD="https://cmu.box.com/shared/static/ha836ch0yv8qhksg9p4c7jbk00nf962v.gz"
-WWW_TARBALL="ha836ch0yv8qhksg9p4c7jbk00nf962v.gz"
+WWW_TARBALL="www.tar.gz"
 WWW_SRC_DIR="www"
 
 F4F_DOWNLOAD="https://cmu.box.com/shared/static/ejmqauqmenqe6ll8terkcqfwajpo3v4j.gz"
-F4F_TARBALL="ejmqauqmenqe6ll8terkcqfwajpo3v4j.gz"
+F4F_TARBALL="adobe_f4f_apache_module_4_5_1_linux_x64.tar.gz"
 F4F_SRC_DIR="adobe_f4f_apache_module_4_5_1_linux_x64"
 
 F4F_CONF="LoadModule f4fhttp_module modules/mod_f4fhttp.so\n
@@ -52,7 +52,7 @@ download_tarball() {
     cd $HOME
     if [ ! -f $2 ]; then
         echo "Downloading $2..."
-        curl -# $1 -o $2
+        curl -# -L $1 -o $2
     fi
 }
 
