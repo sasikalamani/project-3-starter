@@ -12,7 +12,7 @@
   8. Choose the Memory Size that you'd like to allocate. Hit "Continue".
   9. Select "Use an existing virtual hard disk file" and then browse and select the image file that you downloaded from the course web-page.
   10. Then you should be able to launch the VM from the list that is displayed when you launch VBox.
-  11. ~~You need to run the script (setup.sh) above after you lauch the VM to set the VM up. You may need to change the permission first ("chmod u+x setup.sh")~~
+  11. *Only do this step if you are not using the provided VM Image* - You need to run the script `setup.sh`. You may need to change the permissions first `chmod u+x setup.sh"`
   12. If you want to ssh into your VM, you need to change your network setting on VM to "Bridged Adapter"
   13. The VM doesn't have yacc installed. You need to type "sudo yum install byacc" in terminal to install it manually
 
