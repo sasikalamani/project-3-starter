@@ -1,16 +1,16 @@
 /********************************************************
-/*  Author: Sannan Tariq                                *
-/*  Email: stariq@cs.cmu.edu                            *
-/*  Description: This code creates a simple             *
-/*                proxy with some HTTP parsing          *
-/*                and pipelining capabilities           *
-/*  Bug Reports: Please send email with                 *
-/*              subject line "15441-proxy-bug"          *
-/*  Complaints/Opinions: Please send email with         *
-/*              subject line "15441-proxy-complaint".   *
-/*              This makes it easier to set a rule      *
-/*              to send such mail to trash :)           *
-/********************************************************/
+*  Author: Sannan Tariq                                *
+*  Email: stariq@cs.cmu.edu                            *
+*  Description: This code creates a simple             *
+*                proxy with some HTTP parsing          *
+*                and pipelining capabilities           *
+*  Bug Reports: Please send email with                 *
+*              subject line "15441-proxy-bug"          *
+*  Complaints/Opinions: Please send email with         *
+*              subject line "15441-proxy-complaint".   *
+*              This makes it easier to set a rule      *
+*              to send such mail to trash :)           *
+********************************************************/
 #include "proxy.h"
 
 

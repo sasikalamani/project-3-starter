@@ -1,15 +1,15 @@
 /********************************************************
-/*  Author: Sannan Tariq                                *
-/*  Email: stariq@cs.cmu.edu                            *
-/*  Description: This code provides funcitions          *
-/*                for creating simple sockets           *
-/*  Bug Reports: Please send email with                 *
-/*              subject line "15441-proxy-bug"          *
-/*  Complaints/Opinions: Please send email with         *
-/*              subject line "15441-proxy-complaint".   *
-/*              This makes it easier to set a rule      *
-/*              to send such mail to trash :)           *
-/********************************************************/
+*  Author: Sannan Tariq                                *
+*  Email: stariq@cs.cmu.edu                            *
+*  Description: This code provides funcitions          *
+*                for creating simple sockets           *
+*  Bug Reports: Please send email with                 *
+*              subject line "15441-proxy-bug"          *
+*  Complaints/Opinions: Please send email with         *
+*              subject line "15441-proxy-complaint".   *
+*              This makes it easier to set a rule      *
+*              to send such mail to trash :)           *
+********************************************************/
 #include "customsocket.h"
 
 /*

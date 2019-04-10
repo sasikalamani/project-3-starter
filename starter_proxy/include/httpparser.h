@@ -1,10 +1,11 @@
 #include <unistd.h> 
 #include <stdio.h> 
 #include <stdlib.h> 
-#include <string.h> 
+
 #include <errno.h>
 
 #define _GNU_SOURCE
+#include <string.h> 
 
 #define INIT_BUF_SIZE 8192
 
