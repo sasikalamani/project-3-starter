@@ -19,6 +19,35 @@ int max(int a, int b) {
     return a;
 }
 
+/*
+Implementation of memmem() function because C sucks!
+
+The memmem() function finds the start of the first occurrence of the
+       substring needle of length needlelen in the memory area haystack of
+       length haystacklen.
+*/
+void *memmem(const void *haystack, size_t haystacklen,
+                    const void *needle, size_t needlelen) {
+    if (haystack == NULL || haystacklen == 0) {
+        return NULL;
+    }
+    
+    if (needle == NULL || needlelen == 0) {
+        return NULL;
+    }
+    
+    const char *h_point = haystack;
+    
+    for (;haystacklen >= needlelen; haystacklen --, h_point++) {
+        if (!memcmp(h_point, needle, needlelen)) {
+            return (void *)h_point;
+        }
+    }
+
+    return NULL;
+}
+
+
 
 
 /*
