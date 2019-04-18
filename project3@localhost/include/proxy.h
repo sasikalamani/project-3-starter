@@ -19,21 +19,9 @@ struct client_struct
     struct timespec tf;
     long long throughput;
     long long bestBitrate;
-    // char* method;
-    // char* URI;
-    // char* version;
 };
 
 typedef struct client_struct client;
-
-struct request_struct{
-    int seg;
-    int frag;
-    char *method;
-    char *URI;
-    char *version;
-    char *path;
-};
 
 
 void calc_throughput(client **clients, size_t i, int* bitrates, double alpha);
