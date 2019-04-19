@@ -7,6 +7,7 @@
 struct client_struct
 {
 	int fd;
+    int servfd;
 	char *recv_buf;
     char *send_buf;
     size_t recv_buf_len;
@@ -19,9 +20,10 @@ struct client_struct
     struct timespec tf;
     long long throughput;
     long long bestBitrate;
-    // char* method;
-    // char* URI;
-    // char* version;
+    char* method;
+    char* URI;
+    char* version;
+    char* header;
 };
 
 typedef struct client_struct client;

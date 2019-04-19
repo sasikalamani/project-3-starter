@@ -23,19 +23,23 @@ int arrayP = 0;
 
 char* logFile;
 double alpha;
-unsigned short;
+unsigned short listen_port;
 char* fake_ip;
 char* dns_ip;
 int dns_port;
 char* www_ip;
 
-struct request_struct *parse_line(client **clients, size_t i){
+int parse_line(client **clients, size_t i){
     char* met;
     char* u;
     char* ver;
     char* CRLF; char* intermediate;
     struct request_struct *req_line;
     int n;
+    char* header;
+
+    //fprintf(stdout, "%s\n", clients[i]->recv_buf);
+    header = memmem(clients[i]->recv_buf, clients[i]->recv_buf_len, "\r\n", strlen("\r\n"));
 
     CRLF = memmem(clients[i]->recv_buf, clients[i]->recv_buf_len, "\r\n\r\n", strlen("\r\n\r\n"));
 
@@ -48,75 +52,79 @@ struct request_struct *parse_line(client **clients, size_t i){
     u = strtok(NULL, " ");
     ver = strtok(NULL, "\r\n");
 
-    req_line->method = met;
-    req_line->URI = u;
-    req_line->version = ver;
-    // fprintf(stdout, "%s\n", met);
+    clients[i]->method = met;
+    clients[i]->URI = u;
+    clients[i]->version = ver;
+    clients[i]->header = header;
+    if (strstr(u, ".f4m") != NULL) {
+        return 1;
+    }   
+
     // fprintf(stdout, "%s\n", u);
     // fprintf(stdout, "%s\n", ver);
 
-    return req_line;
+    return 0;
 
 }
 
-void parse_uri(struct request_struct *req_line){
-    char* uri = req_line->URI;
-    char* find_end;
-    char* intermediate;
-    int n;
+// void parse_uri(struct request_struct *req_line){
+//     char* uri = req_line->URI;
+//     char* find_end;
+//     char* intermediate;
+//     int n;
 
-    find_end = strstr(uri, "/");
-    while(find_end){
-        memset(intermediate, 0, 1024);
-        memcpy(intermediate, find_end, strlen(find_end));
-        if(strstr(find_end+1,  "/") == NULL){
-            n = (find_end - uri) + 1;
-            break;
-        }
-        find_end = strstr(find_end +1 , "/");
-        strncpy(intermediate, uri, n);
-        strncat(intermediate, "\0", 1);
-        memcpy(req_line->path, intermediate, strlen(intermediate));
-    }
+//     find_end = strstr(uri, "/");
+//     while(find_end){
+//         memset(intermediate, 0, 1024);
+//         memcpy(intermediate, find_end, strlen(find_end));
+//         if(strstr(find_end+1,  "/") == NULL){
+//             n = (find_end - uri) + 1;
+//             break;
+//         }
+//         find_end = strstr(find_end +1 , "/");
+//         strncpy(intermediate, uri, n);
+//         strncat(intermediate, "\0", 1);
+//         memcpy(req_line->path, intermediate, strlen(intermediate));
+//     }
 
-}
-void parse_seg_frag(struct request_struct *req){
-    char bit;
-    char seq;
-    char frag;
+// }
+// void parse_seg_frag(struct request_struct *req){
+//     char bit;
+//     char seq;
+//     char frag;
 
-    int first; int last;
+//     int first; int last;
 
-    while(isdigit((req->URI)[last])){
-        last++;
-    }
+//     while(isdigit((req->URI)[last])){
+//         last++;
+//     }
 
-    strncpy(bit, req->URI + first, last - first);
-    strncat(bit, "\0", 1);
+//     strncpy(bit, req->URI + first, last - first);
+//     strncat(bit, "\0", 1);
 
-    while(!isdigit((req->URI)[last])){
-        last++;
-    }
-    first = last;
+//     while(!isdigit((req->URI)[last])){
+//         last++;
+//     }
+//     first = last;
 
-    while(isdigit((req->URI)[last])){
-        last++;
-    }
+//     while(isdigit((req->URI)[last])){
+//         last++;
+//     }
 
-    strncpy(seq, req->URI + first, last - first);
-    strncat(seq, "\0", 1);
+//     strncpy(seq, req->URI + first, last - first);
+//     strncat(seq, "\0", 1);
 
-    while(!isdigit((req->URI)[last])){
-        last++;
-    }
-    first = last;
+//     while(!isdigit((req->URI)[last])){
+//         last++;
+//     }
+//     first = last;
 
-    strncpy(frag, req->URI + first, last - first);
-    strncat(frag, "\0", 1);
+//     strncpy(frag, req->URI + first, last - first);
+//     strncat(frag, "\0", 1);
 
-    req->seg = atoi(seq);
-    req->frag = atoi(frag);
-}
+//     req->seg = atoi(seq);
+//     req->frag = atoi(frag);
+// }
 
 long long timenow(){
     struct timeval cur;
@@ -136,9 +144,10 @@ long long timenow(){
  *  @ENSURES: returns a pointer to a new client struct
  *
 */
-client *new_client(int client_fd, int is_server, size_t sibling_idx) {
+client *new_client(int client_fd, int is_server, size_t sibling_idx, int servfd) {
     client *new = calloc(1, sizeof(client));
     new->fd = client_fd;
+    new->servfd = servfd;
     new->recv_buf = calloc(INIT_BUF_SIZE, 1);
     new->send_buf = calloc(INIT_BUF_SIZE, 1);
     new->recv_buf_len = 0;
@@ -167,7 +176,7 @@ void free_client(client* c) {
  *  @ENSURES: Returns the index of the added client if possible, otherwise -1
  *
 */
-int add_client(int client_fd, client **clients, fd_set *read_set, int is_server, size_t sibling_idx) {
+int add_client(int client_fd, client **clients, fd_set *read_set, int is_server, size_t sibling_idx, int servfd) {
     int i;
 
     // //bind to the server
@@ -218,7 +227,7 @@ int add_client(int client_fd, client **clients, fd_set *read_set, int is_server,
 
     for (i = 0; i < MAX_CLIENTS - 1; i ++) {
         if (clients[i] == NULL) {
-            clients[i] = new_client(client_fd, is_server, sibling_idx);
+            clients[i] = new_client(client_fd, is_server, sibling_idx, servfd);
             FD_SET(client_fd, read_set);
             return i;
         }
@@ -523,6 +532,7 @@ int main(int argc, char* argv[]) {
     int* bitrates;
     int client_fd;
     int test;
+    char response[1024];
 
     //char* tester = 'GET /v1/vod/big_buck_bunny.f4m HTTP/1.1\r\n\r\n';
     
@@ -562,15 +572,11 @@ int main(int argc, char* argv[]) {
                 }
 
                 // add the client to the client_fd list of filed descriptors
-                else if ((client_idx = add_client(client_fd, clients, &read_set, 0, -1))!= -1) {
+                else if ((client_idx = add_client(client_fd, clients, &read_set, 0, -1, listen_fd))!= -1) {
                     
                     int sibling_fd = open_socket_to_server(my_ip, server_ip, server_port);
-                    int server_idx = add_client(sibling_fd, clients, &read_set, 1, client_idx);
+                    int server_idx = add_client(sibling_fd, clients, &read_set, 1, client_idx, listen_fd);
                     clients[client_idx]->sibling_idx = server_idx;
-                    // clients[client_idx]->recv_buf = tester;
-                    // clients[client_idx]->recv_buf_len = strlen(tester);
-                    // test = parse_line(clients, client_idx);
-
                     printf("start_proxying: Connected to %s on FD %d\n"
                     "And its sibling %s on FD %d\n", inet_ntoa(cli_addr.sin_addr),
                         client_fd, server_ip, sibling_fd);
@@ -579,10 +585,6 @@ int main(int argc, char* argv[]) {
                 else
                     close(client_fd);         
             }
-
-
-
-
 
             for (i = 0; i < MAX_CLIENTS - 1 && nready > 0; i++) {
                 if (clients[i] != NULL) {
@@ -599,16 +601,6 @@ int main(int argc, char* argv[]) {
                             fprintf(stderr, "start_proxying: Error removing client\n");
                         }
                     }
-                    // if(nread > 0){
-                    //     fprintf(stdout, "%s %d\n", "Trying to parse", nread);
-                    //     fprintf(stdout, "%s\n", clients[i]->recv_buf);
-                    //     req_line = parse_line(clients, i);
-                    //     fprintf(stdout, "%s %s %s\n", req_line->method, req_line->URI,
-                    //                             req_line->version);
-                    //     parse_uri(req_line);
-                    //     parse_seg_frag(req_line);
-
-                    // }
 
                     if (nread >= 0 && nready > 0) {
                         if (FD_ISSET(clients[i]->fd, &write_ready_set)) {
@@ -626,28 +618,17 @@ int main(int argc, char* argv[]) {
                         }
                         else{
                             fprintf(stdout, "%s\n", "Going to the video portion");
+                            test = parse_line(clients, i);
+                            //fprintf(stdout, "%s\n", clients[i]->header);
+                            if(test == 0){
+                                fprintf(stdout, "%s\n", "hi");
+                                sprintf(response, "GET %s HTTP/1.1\r\n%s", clients[i]->URI, clients[i]->header);
+                                send(clients[i]->servfd, response,
+                                        strlen(response), 0);
+                                fprintf(stdout, "%s\n", "sent");
+                            }
                         }
                     }
-                    //for media
-                    // if(clients[i]->is_server){
-                    //     fprintf(stdout, "%s\n", "Going to the video portion");
-
-                    //     if(FD_ISSET(clients[i]->fd, &read_ready_set)){
-                    //         nready --;
-                    //         data_available = 1;
-                    //         //n = recv_from_client(clients, i);
-                    //         n = recv(clients[i]->fd, buf, INIT_BUF_SIZE, 0);
-                    //         clock_gettime(CLOCK_MONOTONIC, &clients[i]->tf);
-                    //         if(n > 0){
-                    //             send(client_fd, buf, n, 0);
-                    //             clients[i]->recv_buf_size = n;
-                    //             //bitrate throughput
-                    //             calc_throughput(clients, i, bitrates, alpha);
-                    //             clients[i]->recv_buf_size = 0;
-                    //         }
-                    //     }
-                    // }
-
                 }
  
             }
