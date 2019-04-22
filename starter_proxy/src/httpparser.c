@@ -150,6 +150,7 @@ char *pop_message(char **recv_buffer, size_t *recv_buffer_len, size_t *recv_buff
     char *message_received, *new_recv_buffer;
     int message_length, new_recv_buffer_len;
     int new_buffer_size;
+    char* help;
 
     message_length = find_http_message_end(*recv_buffer, *recv_buffer_len);
 

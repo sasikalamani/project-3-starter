@@ -19,3 +19,5 @@ char *resize(char *buf, int new_len, int old_len);
 
 void *memmem(const void *haystack, size_t haystacklen,
                     const void *needle, size_t needlelen);
+
+int find_http_message_end(char* recv_buffer, size_t recv_buffer_len);

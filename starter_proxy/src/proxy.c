@@ -11,128 +11,15 @@
 *              This makes it easier to set a rule      *
 *              to send such mail to trash :)           *
 ********************************************************/
-
-
-
 #include "proxy.h"
-#include <time.h>
-
-int bitrates[100];
-int arrayP = 0; 
 
 
-char* logFile;
-double alpha;
-unsigned short listen_port;
-char* fake_ip;
-char* dns_ip;
-int dns_port;
-char* www_ip;
-
-int parse_line(client **clients, size_t i){
-    char* met;
-    char* u;
-    char* ver;
-    char* CRLF; char* intermediate;
-    struct request_struct *req_line;
-    int n;
-    char* header;
-
-    //fprintf(stdout, "%s\n", clients[i]->recv_buf);
-    header = memmem(clients[i]->recv_buf, clients[i]->recv_buf_len, "\r\n", strlen("\r\n"));
-
-    CRLF = memmem(clients[i]->recv_buf, clients[i]->recv_buf_len, "\r\n\r\n", strlen("\r\n\r\n"));
-
-    CRLF = memmem(clients[i]->recv_buf, clients[i]->recv_buf_len, "\r\n", strlen("\r\n\r\n"));
-    n = (size_t)(CRLF - clients[i]->recv_buf);
-
-    intermediate = strndup(clients[i]->recv_buf, n);
-
-    met = strtok(intermediate, " ");
-    u = strtok(NULL, " ");
-    ver = strtok(NULL, "\r\n");
-
-    clients[i]->method = met;
-    clients[i]->URI = u;
-    clients[i]->version = ver;
-    clients[i]->header = header;
-    if (strstr(u, ".f4m") != NULL) {
-        return 1;
-    }   
-
-    // fprintf(stdout, "%s\n", u);
-    // fprintf(stdout, "%s\n", ver);
-
-    return 0;
-
-}
-
-// void parse_uri(struct request_struct *req_line){
-//     char* uri = req_line->URI;
-//     char* find_end;
-//     char* intermediate;
-//     int n;
-
-//     find_end = strstr(uri, "/");
-//     while(find_end){
-//         memset(intermediate, 0, 1024);
-//         memcpy(intermediate, find_end, strlen(find_end));
-//         if(strstr(find_end+1,  "/") == NULL){
-//             n = (find_end - uri) + 1;
-//             break;
-//         }
-//         find_end = strstr(find_end +1 , "/");
-//         strncpy(intermediate, uri, n);
-//         strncat(intermediate, "\0", 1);
-//         memcpy(req_line->path, intermediate, strlen(intermediate));
-//     }
-
-// }
-// void parse_seg_frag(struct request_struct *req){
-//     char bit;
-//     char seq;
-//     char frag;
-
-//     int first; int last;
-
-//     while(isdigit((req->URI)[last])){
-//         last++;
-//     }
-
-//     strncpy(bit, req->URI + first, last - first);
-//     strncat(bit, "\0", 1);
-
-//     while(!isdigit((req->URI)[last])){
-//         last++;
-//     }
-//     first = last;
-
-//     while(isdigit((req->URI)[last])){
-//         last++;
-//     }
-
-//     strncpy(seq, req->URI + first, last - first);
-//     strncat(seq, "\0", 1);
-
-//     while(!isdigit((req->URI)[last])){
-//         last++;
-//     }
-//     first = last;
-
-//     strncpy(frag, req->URI + first, last - first);
-//     strncat(frag, "\0", 1);
-
-//     req->seg = atoi(seq);
-//     req->frag = atoi(frag);
-// }
-
-long long timenow(){
-    struct timeval cur;
-    long long tv;
-    gettimeofday(&cur, NULL);
-    tv = cur.tv_sec;
-    tv = tv * 1000000 * cur.tv_usec;
-    return tv;
+size_t count_utf8_code_points(const char *s) {
+    size_t count = 0;
+    while (*s) {
+        count += (*s++ & 0xC0) != 0x80;
+    }
+    return count;
 }
 
 /*
@@ -144,10 +31,9 @@ long long timenow(){
  *  @ENSURES: returns a pointer to a new client struct
  *
 */
-client *new_client(int client_fd, int is_server, size_t sibling_idx, int servfd) {
+client *new_client(int client_fd, int is_server, size_t sibling_idx) {
     client *new = calloc(1, sizeof(client));
     new->fd = client_fd;
-    new->servfd = servfd;
     new->recv_buf = calloc(INIT_BUF_SIZE, 1);
     new->send_buf = calloc(INIT_BUF_SIZE, 1);
     new->recv_buf_len = 0;
@@ -176,58 +62,11 @@ void free_client(client* c) {
  *  @ENSURES: Returns the index of the added client if possible, otherwise -1
  *
 */
-int add_client(int client_fd, client **clients, fd_set *read_set, int is_server, size_t sibling_idx, int servfd) {
+int add_client(int client_fd, client **clients, fd_set *read_set, int is_server, size_t sibling_idx) {
     int i;
-
-    // //bind to the server
-    // int status, sock;
-    // struct addrinfo hints; struct sockaddr_in fake;
-    // struct addrinfo *servinfo; 
-    // memset(&hints, 0, sizeof (hints));
-    // hints.ai_family = AF_INET;     
-    // hints.ai_socktype = SOCK_STREAM; 
-    // hints.ai_flags = AI_PASSIVE;     
-
-    // /* Bind the fake IP to the socket */
-
-    // memset(&fake, 0, sizeof(fake));
-    // fake.sin_family      = AF_INET;
-    // fake.sin_addr.s_addr = inet_addr(fake_ip);
-    // fake.sin_port        = 0;
-
-    // /* Connect to the www_ip. */
-    // if ((status = getaddrinfo(www_ip, "8080", &hints, &servinfo)) != 0)
-    // {
-    //     fprintf(stderr, "getaddrinfo error: %s \n", gai_strerror(status));
-    //     return EXIT_FAILURE;
-    // }
-
-    // if((sock = socket(servinfo->ai_family, servinfo->ai_socktype,
-    //                   servinfo->ai_protocol)) == -1)
-    // {
-    //     fprintf(stderr, "Socket failed");
-    //     return EXIT_FAILURE;
-    // }
-
-    // if (connect (sock, servinfo->ai_addr, servinfo->ai_addrlen) == -1)
-    // {
-    //     fprintf(stderr, "Connect");
-    //         return EXIT_FAILURE;
-    // }
-
-    // /* Bind this socket to the fake-ip with an ephemeral port */
-    // bind(sock, (struct sockaddr *) &fake, sizeof(fake));
-
-    /* We now have a unique connection established for this client */
-    // state->servfd = sock;
-    // state->servst = calloc(sizeof(struct serv_rep), 1);
-
-    // strncpy(state->serv_ip, webip, INET_ADDRSTRLEN);
-    // freeaddrinfo(servinfo);
-
     for (i = 0; i < MAX_CLIENTS - 1; i ++) {
         if (clients[i] == NULL) {
-            clients[i] = new_client(client_fd, is_server, sibling_idx, servfd);
+            clients[i] = new_client(client_fd, is_server, sibling_idx);
             FD_SET(client_fd, read_set);
             return i;
         }
@@ -363,8 +202,10 @@ int recv_from_client(client** clients, size_t i) {
  *  - appends data to the client's send buffer and returns the number of bytes appended
  *
 */
-int queue_message_send(client **clients, size_t i, char *buf) {
-    size_t n = strlen(buf);
+int queue_message_send(client **clients, size_t i, char *buf, int len) {
+    size_t n = (size_t)len;
+    fprintf(stdout, "%s\n", buf);
+    fprintf(stdout, "%d\n", n);
     size_t new_size;
 
     new_size = clients[i]->send_buf_size;
@@ -399,144 +240,55 @@ int queue_message_send(client **clients, size_t i, char *buf) {
 int process_client_read(client **clients, size_t i, int data_available, fd_set *write_set) {
     char *msg_rcvd;
     int nread;
+    int message_length;
+    char **recv_buffer;
+    size_t *recv_buffer_len;
     if (data_available == 1) {
         if ((nread = recv_from_client(clients, i)) < 0) {
             fprintf(stderr, "start_proxying: Error while receiving from client\n");
             return -1;
         }
         else if (nread == 0) {
+           
             return -1;
         }
     }
+    fprintf(stdout, "%s\n", clients[i]->recv_buf);
+    message_length = find_http_message_end(clients[i]->recv_buf, clients[i]->recv_buf_len);
+    fprintf(stdout, "%d %s \n", message_length, "heihiod");
     
-    msg_rcvd = pop_message(&(clients[i]->recv_buf), &(clients[i]->recv_buf_len), &clients[i]->recv_buf_size);
-    clients[i]->recv_buf = msg_rcvd;
-    clients[i]->recv_buf_len = strlen(msg_rcvd);
-    if (msg_rcvd == NULL) {
+    if ((msg_rcvd = pop_message(&(clients[i]->recv_buf), &(clients[i]->recv_buf_len), &clients[i]->recv_buf_size)) == NULL) {
         return 0;
     }
 
     else {
+        // recv_buffer = &(clients[i]->recv_buf);
+        // recv_buffer_len = &(clients[i]->recv_buf_len);
+        // message_length = find_http_message_end(clients[i]->re, *recv_buffer_len);
+        //message_length = find_http_message_end(clients[i]->recv_buf, clients[i]->recv_buf_len);
         int sibling_idx = clients[i]->sibling_idx;
-        int bytes_queued = queue_message_send(clients, sibling_idx, msg_rcvd);
+        int bytes_queued = queue_message_send(clients, sibling_idx, msg_rcvd, message_length);
         FD_SET(clients[sibling_idx]->fd, write_set);
         return bytes_queued;
     }
 
 }
 
-// void parse_msg(client c){
-//     char* end = strstr(c)
-// }
-
-
-long long findGreatestBi(int* bitrates){
-    long long maxBitrate = 0;
-    int i;
-    for(i=0; i<sizeof(bitrates); i++){
-        if(bitrates[i]>maxBitrate){
-            maxBitrate = bitrates[i];
-        }
-    }
-    return maxBitrate;
-}
-
-void calc_throughput(client **clients, size_t i, int* bitrates, double alpha){
-    long long elapsed_time;
-    struct timespec *ts = &clients[i]->ts;
-    struct timespec *tf = &clients[i]->tf;
-    long long maxBitrate = 0;
-    long long minBitrate = 10000000000;
-    long long T;
-    int j; 
-
-    elapsed_time = (1000000000*(ts->tv_sec) + (ts->tv_nsec))  - (1000000000*(tf->tv_sec) + (tf->tv_nsec));
-
-    T = ((clients[i]->recv_buf_size) * 8000000) / elapsed_time;
-
-    clients[i]->throughput = alpha*T + (1-alpha)*clients[i]->throughput;
-
-    for(j=0; j<sizeof(bitrates); j++){
-        if(clients[i]->throughput > bitrates[j]*1.5){
-            if(maxBitrate < bitrates[j]){
-                maxBitrate = bitrates[j];
-            }
-        }
-        if(minBitrate > bitrates[j]){
-            minBitrate = bitrates[j];
-        }
-        //no bitrate > 1.5
-        if(maxBitrate == 0){
-            clients[i]->bestBitrate = findGreatestBi(bitrates);
-        }
-        else{
-            clients[i]->bestBitrate = maxBitrate;
-        }
-    }
-
-}
-
-void parseVideo(client **clients, size_t i){
-    char* haystack = clients[i]->recv_buf;
-    size_t haystack_len = clients[i]->recv_buf_len;
-    char* needle = NULL;
-    char* str2 = NULL;
-    char* string = "bitrate=";
-    size_t needle_len = strlen("bitrate=");
-    char val[100] = {0};
-    int curBitrate;
-    size_t bitrate_len;
-
-    while((needle = memmem(haystack, haystack_len, string, needle_len)) != NULL){
-        str2 = strstr(needle + needle_len + 1, "\"");
-        bitrate_len = str2 - (needle + needle_len + 1); 
-        bzero(val, 200);
-        strncpy(val, needle + needle_len + 1, bitrate_len);
-        curBitrate = atoi(val);
-
-        //add bitrate into the array
-        bitrates[arrayP] = curBitrate;
-        arrayP += 1;
-
-        haystack = str2;
-    }
-
-}
-
-int main(int argc, char* argv[]) {
+int start_proxying() {
     int max_fd, nready, listen_fd;
     fd_set read_set, read_ready_set, write_set, write_ready_set;
     struct sockaddr_in cli_addr;
     socklen_t cli_size;
     client **clients;
     size_t i;
-    int n;
-    char buf[INIT_BUF_SIZE];
-    struct request_struct *req_line;
 
-    //command line arguments
-    char* logFile = argv[1];
-    double alpha = atof(argv[2]);
-    unsigned short listen_port = atoi(argv[3]);
-    char* fake_ip = argv[4];
-    char* dns_ip = argv[5];
-    int dns_port = atoi(argv[6]);
-    char* www_ip = argv[7];
-
-    //unsigned short listen_port = 8888;
-    char *server_ip = www_ip;
+    unsigned short listen_port = 8888;
+    char *server_ip = "4.0.0.1";
     unsigned short server_port = 8080;
     char *my_ip = "0.0.0.0";
 
-
-    int* bitrates;
-    int client_fd;
-    int test;
-    char response[1024];
-
-    //char* tester = 'GET /v1/vod/big_buck_bunny.f4m HTTP/1.1\r\n\r\n';
     
-    printf("Starting the proxy...\n");
+
 
     if ((listen_fd = open_listen_socket(listen_port)) < 0) {
         fprintf(stderr, "start_proxy: Failed to start listening\n");
@@ -561,6 +313,7 @@ int main(int argc, char* argv[]) {
 
         if (nready > 0) {
             if (FD_ISSET(listen_fd, &read_ready_set)) {
+                int client_fd;
                 int client_idx;
                 nready --;
 
@@ -572,10 +325,10 @@ int main(int argc, char* argv[]) {
                 }
 
                 // add the client to the client_fd list of filed descriptors
-                else if ((client_idx = add_client(client_fd, clients, &read_set, 0, -1, listen_fd))!= -1) {
+                else if ((client_idx = add_client(client_fd, clients, &read_set, 0, -1))!= -1) {
                     
                     int sibling_fd = open_socket_to_server(my_ip, server_ip, server_port);
-                    int server_idx = add_client(sibling_fd, clients, &read_set, 1, client_idx, listen_fd);
+                    int server_idx = add_client(sibling_fd, clients, &read_set, 1, client_idx);
                     clients[client_idx]->sibling_idx = server_idx;
                     printf("start_proxying: Connected to %s on FD %d\n"
                     "And its sibling %s on FD %d\n", inet_ntoa(cli_addr.sin_addr),
@@ -606,7 +359,6 @@ int main(int argc, char* argv[]) {
                         if (FD_ISSET(clients[i]->fd, &write_ready_set)) {
                             nready --;
                             int nsend = process_client_send(clients, i);
-                            clock_gettime(CLOCK_MONOTONIC, &clients[i]->ts);
                             if (nsend < 0) {
                                 if (remove_client(clients, i, &read_set, &write_set) < 0) {
                                     fprintf(stderr, "start_proxying: Error removing client\n");
@@ -616,26 +368,21 @@ int main(int argc, char* argv[]) {
                                 FD_CLR(clients[i]->fd, &write_set);
                             }
                         }
-                        else{
-                            fprintf(stdout, "%s\n", "Going to the video portion");
-                            test = parse_line(clients, i);
-                            //fprintf(stdout, "%s\n", clients[i]->header);
-                            if(test == 0){
-                                fprintf(stdout, "%s\n", "hi");
-                                sprintf(response, "GET %s HTTP/1.1\r\n%s", clients[i]->URI, clients[i]->header);
-                                send(clients[i]->servfd, response,
-                                        strlen(response), 0);
-                                fprintf(stdout, "%s\n", "sent");
-                            }
-                        }
                     }
                 }
- 
+                
             }
             max_fd = find_maxfd(listen_fd, clients);
         }
 
     }
     
+
+}
+
+int main() {
+    // start_proxying();
+    printf("Starting the proxy...\n");
+    start_proxying();
     return 0;
 }
